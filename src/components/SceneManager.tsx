@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { Plus, Trash2, Edit3, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Trash2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,29 +18,61 @@ interface Scene {
   description?: string;
 }
 
-const SceneManager = () => {
-  const [scenes, setScenes] = useState<Scene[]>([
-    {
-      id: '1',
-      name: 'Introduktion',
-      keywords: ['velkommen', 'præsentation', 'formål'],
-      description: 'Indledende præsentation og formål'
-    },
-    {
-      id: '2', 
-      name: 'Teori',
-      keywords: ['teori', 'koncept', 'definition'],
-      description: 'Teoretisk gennemgang af kernebegreber'
-    }
-  ]);
-  
+interface Room {
+  id: string;
+  name: string;
+  description?: string;
+  scenes: RoomScene[];
+  createdAt: string;
+}
+
+interface RoomScene {
+  id: string;
+  name: string;
+  keywords: string[];
+  description?: string;
+}
+
+interface SceneManagerProps {
+  selectedRoom?: Room;
+}
+
+const SceneManager = ({ selectedRoom }: SceneManagerProps) => {
+  const [scenes, setScenes] = useState<Scene[]>([]);
   const [newScene, setNewScene] = useState({
     name: '',
     keywords: '',
     description: ''
   });
-  
   const [isAdding, setIsAdding] = useState(false);
+
+  // Load scenes from selected room
+  useEffect(() => {
+    if (selectedRoom) {
+      const roomScenes: Scene[] = selectedRoom.scenes.map(scene => ({
+        ...scene,
+        startTime: undefined,
+        endTime: undefined
+      }));
+      setScenes(roomScenes);
+    } else {
+      // Load default scenes when no room is selected
+      setScenes([
+        {
+          id: '1',
+          name: 'Introduktion',
+          keywords: ['velkommen', 'præsentation', 'formål'],
+          description: 'Indledende præsentation og formål'
+        },
+        {
+          id: '2', 
+          name: 'Teori',
+          keywords: ['teori', 'koncept', 'definition'],
+          description: 'Teoretisk gennemgang af kernebegreber'
+        }
+      ]);
+    }
+  }, [selectedRoom]);
 
   const addScene = () => {
     if (!newScene.name.trim()) {
@@ -67,8 +99,7 @@ const SceneManager = () => {
   };
 
   const updateSceneTime = (id: string, type: 'start' | 'end') => {
-    // This would typically be called during playback to mark scene boundaries
-    const timestamp = Date.now(); // In real app, this would be the current playback time
+    const timestamp = Date.now();
     setScenes(scenes.map(scene => 
       scene.id === id 
         ? { ...scene, [type === 'start' ? 'startTime' : 'endTime']: timestamp }
@@ -84,19 +115,38 @@ const SceneManager = () => {
           <div className="flex items-center space-x-2">
             <Clock className="w-5 h-5 text-primary-600" />
             <span>Scener</span>
+            {selectedRoom && (
+              <Badge variant="secondary" className="ml-2">
+                {selectedRoom.name}
+              </Badge>
+            )}
           </div>
-          <Button
-            onClick={() => setIsAdding(true)}
-            size="sm"
-            className="flex items-center space-x-1"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tilføj Scene</span>
-          </Button>
+          {!selectedRoom && (
+            <Button
+              onClick={() => setIsAdding(true)}
+              size="sm"
+              className="flex items-center space-x-1"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tilføj Scene</span>
+            </Button>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {isAdding && (
+        {selectedRoom && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-blue-700">
+              <strong>Aktive rum:</strong> {selectedRoom.name}
+              {selectedRoom.description && ` - ${selectedRoom.description}`}
+            </p>
+            <p className="text-xs text-blue-600 mt-1">
+              Scenerne er hentet fra det valgte rum. Du kan ikke redigere dem her.
+            </p>
+          </div>
+        )}
+
+        {!selectedRoom && isAdding && (
           <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
             <div>
               <Label htmlFor="scene-name">Scene Navn</Label>
@@ -155,14 +205,16 @@ const SceneManager = () => {
                   </Badge>
                   <h3 className="font-semibold text-gray-900">{scene.name}</h3>
                 </div>
-                <Button
-                  onClick={() => removeScene(scene.id)}
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                {!selectedRoom && (
+                  <Button
+                    onClick={() => removeScene(scene.id)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
               
               {scene.description && (
@@ -215,7 +267,9 @@ const SceneManager = () => {
           <div className="text-center py-8 text-gray-500">
             <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>Ingen scener defineret endnu</p>
-            <p className="text-sm">Klik "Tilføj Scene" for at komme i gang</p>
+            {!selectedRoom && (
+              <p className="text-sm">Klik "Tilføj Scene" for at komme i gang</p>
+            )}
           </div>
         )}
       </CardContent>
