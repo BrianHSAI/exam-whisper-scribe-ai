@@ -14,15 +14,8 @@ interface Room {
   id: string;
   name: string;
   description?: string;
-  scenes: RoomScene[];
-  createdAt: string;
-}
-
-interface RoomScene {
-  id: string;
-  name: string;
   keywords: string[];
-  description?: string;
+  createdAt: string;
 }
 
 interface RoomManagerProps {
@@ -37,12 +30,7 @@ const RoomManager = ({ onRoomSelect, selectedRoomId }: RoomManagerProps) => {
   const [newRoom, setNewRoom] = useState({
     name: '',
     description: '',
-    scenes: [] as RoomScene[]
-  });
-  const [newScene, setNewScene] = useState({
-    name: '',
-    keywords: '',
-    description: ''
+    keywords: ''
   });
 
   // Load rooms and API key from localStorage on mount
@@ -69,43 +57,14 @@ const RoomManager = ({ onRoomSelect, selectedRoomId }: RoomManagerProps) => {
     toast.success('API-nøgle gemt');
   };
 
-  const addSceneToNewRoom = () => {
-    if (!newScene.name.trim()) {
-      toast.error("Scene navn er påkrævet");
-      return;
-    }
-
-    const scene: RoomScene = {
-      id: Date.now().toString() + Math.random(),
-      name: newScene.name.trim(),
-      keywords: newScene.keywords.split(',').map(k => k.trim()).filter(k => k.length > 0),
-      description: newScene.description.trim() || undefined
-    };
-
-    setNewRoom(prev => ({
-      ...prev,
-      scenes: [...prev.scenes, scene]
-    }));
-    
-    setNewScene({ name: '', keywords: '', description: '' });
-    toast.success("Scene tilføjet til nyt rum");
-  };
-
-  const removeSceneFromNewRoom = (sceneId: string) => {
-    setNewRoom(prev => ({
-      ...prev,
-      scenes: prev.scenes.filter(scene => scene.id !== sceneId)
-    }));
-  };
-
   const createRoom = () => {
     if (!newRoom.name.trim()) {
       toast.error("Rum navn er påkrævet");
       return;
     }
 
-    if (newRoom.scenes.length === 0) {
-      toast.error("Mindst én scene er påkrævet");
+    if (!newRoom.keywords.trim()) {
+      toast.error("Nøgleord er påkrævet");
       return;
     }
 
@@ -113,12 +72,12 @@ const RoomManager = ({ onRoomSelect, selectedRoomId }: RoomManagerProps) => {
       id: Date.now().toString(),
       name: newRoom.name.trim(),
       description: newRoom.description.trim() || undefined,
-      scenes: newRoom.scenes,
+      keywords: newRoom.keywords.split(',').map(k => k.trim()).filter(k => k.length > 0),
       createdAt: new Date().toISOString()
     };
 
     setRooms(prev => [...prev, room]);
-    setNewRoom({ name: '', description: '', scenes: [] });
+    setNewRoom({ name: '', description: '', keywords: '' });
     setIsCreatingRoom(false);
     toast.success("Rum oprettet");
   };
@@ -150,7 +109,7 @@ const RoomManager = ({ onRoomSelect, selectedRoomId }: RoomManagerProps) => {
         const imported = JSON.parse(e.target?.result as string);
         
         // Validate imported room structure
-        if (!imported.name || !Array.isArray(imported.scenes)) {
+        if (!imported.name || !Array.isArray(imported.keywords)) {
           throw new Error('Ugyldig rum struktur');
         }
 
@@ -173,24 +132,24 @@ const RoomManager = ({ onRoomSelect, selectedRoomId }: RoomManagerProps) => {
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
+    <Card className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50">
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Building2 className="w-5 h-5 text-primary-600" />
-            <span>Rum Manager</span>
+            <Building2 className="w-5 h-5 text-blue-600" />
+            <span className="bg-gradient-to-r from-slate-700 to-blue-700 bg-clip-text text-transparent">Rum Manager</span>
           </div>
           <div className="flex items-center space-x-2">
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="border-blue-200 hover:bg-blue-50">
                   <Key className="w-4 h-4 mr-1" />
                   API-nøgle
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="bg-white/95 backdrop-blur-sm">
                 <DialogHeader>
-                  <DialogTitle>Google Gemini API-nøgle</DialogTitle>
+                  <DialogTitle className="bg-gradient-to-r from-slate-700 to-blue-700 bg-clip-text text-transparent">Google Gemini API-nøgle</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
@@ -200,9 +159,10 @@ const RoomManager = ({ onRoomSelect, selectedRoomId }: RoomManagerProps) => {
                       placeholder="Indtast din Google Gemini API-nøgle"
                       value={apiKey}
                       onChange={(e) => setApiKey(e.target.value)}
+                      className="border-slate-200 focus:border-blue-400"
                     />
                   </div>
-                  <Button onClick={saveApiKey} className="w-full">
+                  <Button onClick={saveApiKey} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
                     Gem API-nøgle
                   </Button>
                 </div>
@@ -220,6 +180,7 @@ const RoomManager = ({ onRoomSelect, selectedRoomId }: RoomManagerProps) => {
               onClick={() => document.getElementById('import-room')?.click()}
               variant="outline"
               size="sm"
+              className="border-blue-200 hover:bg-blue-50"
             >
               <Upload className="w-4 h-4" />
             </Button>
@@ -227,6 +188,7 @@ const RoomManager = ({ onRoomSelect, selectedRoomId }: RoomManagerProps) => {
             <Button
               onClick={() => setIsCreatingRoom(true)}
               size="sm"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
             >
               <Plus className="w-4 h-4 mr-1" />
               Nyt Rum
@@ -236,99 +198,51 @@ const RoomManager = ({ onRoomSelect, selectedRoomId }: RoomManagerProps) => {
       </CardHeader>
       <CardContent className="space-y-4">
         {isCreatingRoom && (
-          <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+          <div className="border border-slate-200 rounded-lg p-4 space-y-4 bg-slate-50/50">
             <div>
-              <Label>Rum Navn</Label>
+              <Label className="text-slate-700">Rum Navn</Label>
               <Input
                 placeholder="f.eks. Danske Noveller"
                 value={newRoom.name}
                 onChange={(e) => setNewRoom({...newRoom, name: e.target.value})}
+                className="border-slate-200 focus:border-blue-400"
               />
             </div>
             
             <div>
-              <Label>Beskrivelse (valgfri)</Label>
+              <Label className="text-slate-700">Beskrivelse (valgfri)</Label>
               <Textarea
-                placeholder="Kort beskrivelse af rummet..."
+                placeholder="Kort beskrivelse af tekstområdet..."
                 rows={2}
                 value={newRoom.description}
                 onChange={(e) => setNewRoom({...newRoom, description: e.target.value})}
+                className="border-slate-200 focus:border-blue-400"
               />
             </div>
 
-            <div className="border-t pt-4">
-              <h4 className="font-medium mb-3">Tilføj Scener</h4>
-              <div className="space-y-3">
-                <div>
-                  <Label>Scene Navn</Label>
-                  <Input
-                    placeholder="f.eks. Analyse af karakterer"
-                    value={newScene.name}
-                    onChange={(e) => setNewScene({...newScene, name: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label>Nøgleord (separeret med komma)</Label>
-                  <Input
-                    placeholder="f.eks. protagonist, antagonist, udvikling"
-                    value={newScene.keywords}
-                    onChange={(e) => setNewScene({...newScene, keywords: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label>Beskrivelse (valgfri)</Label>
-                  <Input
-                    placeholder="Kort beskrivelse..."
-                    value={newScene.description}
-                    onChange={(e) => setNewScene({...newScene, description: e.target.value})}
-                  />
-                </div>
-                <Button onClick={addSceneToNewRoom} size="sm" variant="outline">
-                  Tilføj Scene
-                </Button>
-              </div>
+            <div>
+              <Label className="text-slate-700">Nøgleord (separeret med komma)</Label>
+              <Textarea
+                placeholder="f.eks. protagonist, antagonist, tematik, symbolik, fortælleteknik"
+                rows={3}
+                value={newRoom.keywords}
+                onChange={(e) => setNewRoom({...newRoom, keywords: e.target.value})}
+                className="border-slate-200 focus:border-blue-400"
+              />
             </div>
-
-            {newRoom.scenes.length > 0 && (
-              <div>
-                <h5 className="font-medium mb-2">Tilføjede Scener:</h5>
-                <div className="space-y-2">
-                  {newRoom.scenes.map((scene) => (
-                    <div key={scene.id} className="flex items-center justify-between bg-background p-2 rounded">
-                      <div>
-                        <span className="font-medium">{scene.name}</span>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {scene.keywords.map((keyword, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-xs">
-                              {keyword}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                      <Button
-                        onClick={() => removeSceneFromNewRoom(scene.id)}
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
             
             <div className="flex space-x-2">
-              <Button onClick={createRoom} size="sm">Opret Rum</Button>
+              <Button onClick={createRoom} size="sm" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+                Opret Rum
+              </Button>
               <Button 
                 onClick={() => {
                   setIsCreatingRoom(false);
-                  setNewRoom({ name: '', description: '', scenes: [] });
-                  setNewScene({ name: '', keywords: '', description: '' });
+                  setNewRoom({ name: '', description: '', keywords: '' });
                 }}
                 variant="outline" 
                 size="sm"
+                className="border-slate-300 hover:bg-slate-50"
               >
                 Annuller
               </Button>
@@ -340,16 +254,18 @@ const RoomManager = ({ onRoomSelect, selectedRoomId }: RoomManagerProps) => {
           {rooms.map((room) => (
             <div 
               key={room.id} 
-              className={`border rounded-lg p-4 space-y-3 cursor-pointer transition-colors ${
-                selectedRoomId === room.id ? 'border-primary-500 bg-primary-50' : 'hover:bg-muted/30'
+              className={`border rounded-lg p-4 space-y-3 cursor-pointer transition-all duration-200 ${
+                selectedRoomId === room.id 
+                  ? 'border-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-md' 
+                  : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50 bg-white/50'
               }`}
               onClick={() => onRoomSelect(room)}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-gray-900">{room.name}</h3>
+                  <h3 className="font-semibold text-slate-800">{room.name}</h3>
                   {room.description && (
-                    <p className="text-sm text-gray-600 mt-1">{room.description}</p>
+                    <p className="text-sm text-slate-600 mt-1">{room.description}</p>
                   )}
                 </div>
                 <div className="flex items-center space-x-2">
@@ -360,6 +276,7 @@ const RoomManager = ({ onRoomSelect, selectedRoomId }: RoomManagerProps) => {
                     }}
                     variant="ghost"
                     size="sm"
+                    className="hover:bg-blue-100"
                   >
                     <Download className="w-4 h-4" />
                   </Button>
@@ -370,7 +287,7 @@ const RoomManager = ({ onRoomSelect, selectedRoomId }: RoomManagerProps) => {
                     }}
                     variant="ghost"
                     size="sm"
-                    className="text-destructive hover:text-destructive"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -378,19 +295,19 @@ const RoomManager = ({ onRoomSelect, selectedRoomId }: RoomManagerProps) => {
               </div>
               
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">
-                  Scener ({room.scenes.length}):
+                <p className="text-sm font-medium text-slate-700 mb-2">
+                  Nøgleord ({room.keywords.length}):
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {room.scenes.map((scene) => (
-                    <Badge key={scene.id} variant="outline" className="text-xs">
-                      {scene.name} ({scene.keywords.length} nøgleord)
+                  {room.keywords.map((keyword, idx) => (
+                    <Badge key={idx} variant="outline" className="text-xs border-blue-200 text-blue-700 bg-blue-50">
+                      {keyword}
                     </Badge>
                   ))}
                 </div>
               </div>
               
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-slate-500">
                 Oprettet: {new Date(room.createdAt).toLocaleDateString('da-DK')}
               </p>
             </div>
@@ -398,7 +315,7 @@ const RoomManager = ({ onRoomSelect, selectedRoomId }: RoomManagerProps) => {
         </div>
 
         {rooms.length === 0 && !isCreatingRoom && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-slate-500">
             <Building2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>Ingen rum oprettet endnu</p>
             <p className="text-sm">Klik "Nyt Rum" for at komme i gang</p>
