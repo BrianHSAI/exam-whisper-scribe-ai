@@ -1,200 +1,166 @@
 
-import { BarChart3, TrendingUp, MessageSquare, CheckCircle, AlertCircle } from "lucide-react";
+import { TrendingUp, MessageSquare, Clock, Target } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
-const AnalysisDashboard = () => {
+interface AnalysisDashboardProps {
+  transcription: string;
+}
+
+const AnalysisDashboard = ({ transcription }: AnalysisDashboardProps) => {
+  // Calculate analysis metrics based on transcription
+  const words = transcription.split(' ').filter(word => word.length > 0);
+  const wordCount = words.length;
+  
+  // Calculate Lix index (simplified)
+  const sentences = transcription.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  const longWords = words.filter(word => word.length > 6);
+  const lixIndex = sentences.length > 0 ? Math.round((wordCount / sentences.length) + (longWords.length * 100 / wordCount)) : 0;
+  
+  // Count filler words
+  const fillerWords = ['øh', 'eh', 'hm', 'hmm', 'jo', 'så', 'altså', 'vel', 'ikke'];
+  const fillerCount = words.filter(word => 
+    fillerWords.includes(word.toLowerCase().replace(/[,.!?]/g, ''))
+  ).length;
+  const fillerPercentage = wordCount > 0 ? Math.round((fillerCount / wordCount) * 100) : 0;
+  
+  // Extract speakers and calculate talk time
+  const speakerMatches = transcription.match(/\[Taler \d+\]:/g) || [];
+  const uniqueSpeakers = [...new Set(speakerMatches)].length;
+  
   const analysisData = {
-    lixtal: 42,
-    fillerWords: {
-      total: 23,
-      percentage: 8.2,
-      breakdown: [
-        { word: "øh", count: 12 },
-        { word: "hmm", count: 6 },
-        { word: "jo", count: 3 },
-        { word: "så", count: 2 }
-      ]
-    },
-    keywordCoverage: 73,
-    speakerStats: [
-      { name: "Taler 1", wordCount: 156, percentage: 35 },
-      { name: "Taler 2", wordCount: 289, percentage: 65 }
-    ],
-    positives: [
-      "Klar struktur i præsentationen",
-      "God brug af fagterminologi",
-      "Relevant eksempelbrug"
-    ],
-    improvements: [
-      "Reducer brugen af fyldord",
-      "Øg tempo i introduktionen",
-      "Uddyb teoretiske begreber"
-    ]
+    wordCount,
+    lixIndex,
+    fillerCount,
+    fillerPercentage,
+    speakingTime: Math.round(wordCount * 0.5), // Rough estimate: 2 words per second
+    uniqueSpeakers,
+    clarity: Math.max(0, 100 - fillerPercentage * 2),
+    engagement: Math.min(100, Math.max(0, (wordCount / 10) + (lixIndex * 2) - fillerPercentage))
   };
-
-  const getLixtalLevel = (score: number) => {
-    if (score < 25) return { level: "Meget let", color: "bg-green-500" };
-    if (score < 35) return { level: "Let", color: "bg-green-400" };
-    if (score < 45) return { level: "Middel", color: "bg-yellow-500" };
-    if (score < 55) return { level: "Svær", color: "bg-orange-500" };
-    return { level: "Meget svær", color: "bg-red-500" };
-  };
-
-  const lixtalInfo = getLixtalLevel(analysisData.lixtal);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Lixtal Analysis */}
-      <Card className="analysis-card">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <BarChart3 className="w-5 h-5 text-primary-600" />
-            <span>Lixtal Analyse</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-center">
-            <div className="text-4xl font-bold text-gray-900 mb-2">
-              {analysisData.lixtal}
-            </div>
-            <Badge className={`${lixtalInfo.color} text-white`}>
-              {lixtalInfo.level}
-            </Badge>
-          </div>
-          <div>
-            <div className="flex justify-between text-sm text-gray-600 mb-2">
-              <span>Læsbarhed</span>
-              <span>{Math.round((60 - analysisData.lixtal) * 100 / 60)}%</span>
-            </div>
-            <Progress value={(60 - analysisData.lixtal) * 100 / 60} className="h-2" />
-          </div>
-          <div className="text-sm text-gray-600">
-            <p>Lixtal måler tekstens kompleksitet. Lavere værdi = lettere at læse.</p>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="analysis-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Ordantal</CardTitle>
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{analysisData.wordCount}</div>
+            <p className="text-xs text-muted-foreground">
+              Estimeret taletid: {Math.round(analysisData.speakingTime / 60)} min
+            </p>
+          </CardContent>
+        </Card>
 
-      {/* Filler Words */}
+        <Card className="analysis-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Lix-tal</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{analysisData.lixIndex}</div>
+            <p className="text-xs text-muted-foreground">
+              {analysisData.lixIndex < 30 ? 'Let læselig' : 
+               analysisData.lixIndex < 40 ? 'Middel' : 
+               analysisData.lixIndex < 50 ? 'Svær' : 'Meget svær'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="analysis-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Fyldord</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{analysisData.fillerCount}</div>
+            <p className="text-xs text-muted-foreground">
+              {analysisData.fillerPercentage}% af ordene
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="analysis-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Talere</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{analysisData.uniqueSpeakers}</div>
+            <p className="text-xs text-muted-foreground">
+              Identificerede stemmer
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="analysis-card">
+          <CardHeader>
+            <CardTitle>Sproglig Klarhed</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Klarhedsscore</span>
+                <span>{analysisData.clarity}%</span>
+              </div>
+              <Progress value={analysisData.clarity} className="h-2" />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Baseret på fyldord og sproglig kompleksitet
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="analysis-card">
+          <CardHeader>
+            <CardTitle>Engagement Level</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Engagement</span>
+                <span>{analysisData.engagement}%</span>
+              </div>
+              <Progress value={analysisData.engagement} className="h-2" />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Baseret på ordantal, kompleksitet og klarhed
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card className="analysis-card">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <MessageSquare className="w-5 h-5 text-primary-600" />
-            <span>Fyldord Analyse</span>
-          </CardTitle>
+          <CardTitle>Feedback & Anbefalinger</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
+        <CardContent>
+          <div className="space-y-4">
             <div>
-              <div className="text-2xl font-bold text-gray-900">
-                {analysisData.fillerWords.total}
-              </div>
-              <div className="text-sm text-gray-600">
-                {analysisData.fillerWords.percentage}% af alle ord
-              </div>
+              <h4 className="font-medium text-green-700 mb-2">Positive punkter:</h4>
+              <ul className="text-sm space-y-1 text-green-600">
+                {analysisData.wordCount > 200 && <li>• God mængde indhold dækket</li>}
+                {analysisData.lixIndex >= 30 && analysisData.lixIndex <= 50 && <li>• Passende sproglig kompleksitet</li>}
+                {analysisData.fillerPercentage < 10 && <li>• Begrænset brug af fyldord</li>}
+                {analysisData.uniqueSpeakers >= 2 && <li>• God dialog og interaktion</li>}
+              </ul>
             </div>
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-              analysisData.fillerWords.percentage > 10 ? 'bg-red-100' : 
-              analysisData.fillerWords.percentage > 5 ? 'bg-yellow-100' : 'bg-green-100'
-            }`}>
-              <span className={`text-sm font-bold ${
-                analysisData.fillerWords.percentage > 10 ? 'text-red-600' : 
-                analysisData.fillerWords.percentage > 5 ? 'text-yellow-600' : 'text-green-600'
-              }`}>
-                {analysisData.fillerWords.percentage}%
-              </span>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            {analysisData.fillerWords.breakdown.map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between">
-                <span className="text-sm font-medium">"{item.word}"</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-20 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-primary-500 h-2 rounded-full"
-                      style={{ width: `${(item.count / analysisData.fillerWords.total) * 100}%` }}
-                    />
-                  </div>
-                  <span className="text-sm text-gray-600 w-8">{item.count}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Speaker Statistics */}
-      <Card className="analysis-card">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <TrendingUp className="w-5 h-5 text-primary-600" />
-            <span>Taler Statistik</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {analysisData.speakerStats.map((speaker, idx) => (
-            <div key={idx} className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">{speaker.name}</span>
-                <span className="text-sm text-gray-600">{speaker.wordCount} ord</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Progress value={speaker.percentage} className="flex-1 h-2" />
-                <span className="text-sm font-medium text-gray-600 w-12">
-                  {speaker.percentage}%
-                </span>
-              </div>
+            <div>
+              <h4 className="font-medium text-amber-700 mb-2">Forbedringspunkter:</h4>
+              <ul className="text-sm space-y-1 text-amber-600">
+                {analysisData.wordCount < 150 && <li>• Overvej at udvide indholdet</li>}
+                {analysisData.fillerPercentage > 15 && <li>• Reducer brugen af fyldord som "øh", "hm"</li>}
+                {analysisData.lixIndex < 25 && <li>• Øg sproglig kompleksitet</li>}
+                {analysisData.lixIndex > 55 && <li>• Forenkle sproget lidt</li>}
+              </ul>
             </div>
-          ))}
-          
-          <div className="pt-2 border-t">
-            <div className="text-sm text-gray-600">
-              Total ord: {analysisData.speakerStats.reduce((sum, s) => sum + s.wordCount, 0)}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Feedback */}
-      <Card className="analysis-card">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <CheckCircle className="w-5 h-5 text-success-600" />
-            <span>Feedback & Forbedringer</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <h4 className="font-semibold text-success-700 mb-3 flex items-center space-x-2">
-              <CheckCircle className="w-4 h-4" />
-              <span>Styrker</span>
-            </h4>
-            <ul className="space-y-2">
-              {analysisData.positives.map((item, idx) => (
-                <li key={idx} className="text-sm text-gray-700 flex items-start space-x-2">
-                  <div className="w-2 h-2 bg-success-500 rounded-full mt-2 flex-shrink-0"></div>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          
-          <div>
-            <h4 className="font-semibold text-orange-700 mb-3 flex items-center space-x-2">
-              <AlertCircle className="w-4 h-4" />
-              <span>Forbedringsområder</span>
-            </h4>
-            <ul className="space-y-2">
-              {analysisData.improvements.map((item, idx) => (
-                <li key={idx} className="text-sm text-gray-700 flex items-start space-x-2">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
           </div>
         </CardContent>
       </Card>

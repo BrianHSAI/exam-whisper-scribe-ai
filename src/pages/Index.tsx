@@ -19,16 +19,32 @@ interface Room {
 const Index = () => {
   const [selectedRoom, setSelectedRoom] = useState<Room | undefined>();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [transcription, setTranscription] = useState("");
   const [showResults, setShowResults] = useState(false);
 
   const handleRoomSelect = (room: Room) => {
     setSelectedRoom(room);
   };
 
-  const handleRecordingComplete = () => {
+  const handleRecordingComplete = (audioBlob: Blob) => {
     setIsAnalyzing(true);
-    // Simulate processing time
+    setShowResults(false);
+    
+    // Simulate transcription process
     setTimeout(() => {
+      const mockTranscription = `[Taler 1]: Velkommen til dagens eksamen. Jeg hedder Lars, og jeg vil være jeres eksaminator i dag.
+
+[Taler 2]: Tak skal du have. Jeg hedder Marie, og jeg skal præsentere mit projekt om kunstig intelligens.
+
+[Taler 1]: Fantastisk. Kan du starte med at give os en kort introduktion til dit projekt?
+
+[Taler 2]: Ja, selvfølgelig. Mit projekt fokuserer på, øh, implementering af machine learning algoritmer til, øh, tekstanalyse. Jeg har arbejdet med naturlig sprogbehandling og, hmm, forskellige former for sentiment analyse.
+
+[Taler 1]: Interessant. Hvilke specifikke algoritmer har du arbejdet med?
+
+[Taler 2]: Jeg har primært brugt neural networks, særligt LSTM og transformer modeller. Øh, jeg har også eksperimenteret med BERT til contextual embeddings.`;
+      
+      setTranscription(mockTranscription);
       setIsAnalyzing(false);
       setShowResults(true);
     }, 3000);
@@ -49,11 +65,9 @@ const Index = () => {
         </div>
 
         <Tabs defaultValue="rooms" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white/80 backdrop-blur-sm border border-slate-200 shadow-sm">
+          <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-sm border border-slate-200 shadow-sm">
             <TabsTrigger value="rooms" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white">Rum</TabsTrigger>
             <TabsTrigger value="recording" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white">Optagelse</TabsTrigger>
-            <TabsTrigger value="analysis" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white">Analyse</TabsTrigger>
-            <TabsTrigger value="transcription" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white">Transskription & Spørgsmål</TabsTrigger>
           </TabsList>
 
           <TabsContent value="rooms" className="space-y-6">
@@ -79,27 +93,12 @@ const Index = () => {
                 </div>
               </div>
             )}
-          </TabsContent>
 
-          <TabsContent value="analysis" className="space-y-6">
-            {showResults ? (
-              <AnalysisDashboard />
-            ) : (
-              <div className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl p-8 shadow-lg text-center">
-                <p className="text-slate-600">Foretag en optagelse først for at se analyseresultater</p>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="transcription" className="space-y-6">
-            {showResults ? (
+            {showResults && (
               <div className="space-y-6">
-                <TranscriptionViewer />
-                <QuestionAnswer />
-              </div>
-            ) : (
-              <div className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl p-8 shadow-lg text-center">
-                <p className="text-slate-600">Foretag en optagelse først for at se transskription</p>
+                <TranscriptionViewer transcription={transcription} selectedRoom={selectedRoom} />
+                <AnalysisDashboard transcription={transcription} />
+                <QuestionAnswer transcription={transcription} />
               </div>
             )}
           </TabsContent>

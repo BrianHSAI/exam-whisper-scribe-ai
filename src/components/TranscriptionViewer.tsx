@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { FileText, Search, Users, Download, Edit3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,27 +7,29 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
-const TranscriptionViewer = () => {
-  const [transcription, setTranscription] = useState(`
-[Taler 1]: Velkommen til dagens eksamen. Jeg hedder Lars, og jeg vil være jeres eksaminator i dag.
+interface Room {
+  id: string;
+  name: string;
+  description?: string;
+  keywords: string[];
+  createdAt: string;
+}
 
-[Taler 2]: Tak skal du have. Jeg hedder Marie, og jeg skal præsentere mit projekt om kunstig intelligens.
+interface TranscriptionViewerProps {
+  transcription: string;
+  selectedRoom?: Room;
+}
 
-[Taler 1]: Fantastisk. Kan du starte med at give os en kort introduktion til dit projekt?
-
-[Taler 2]: Ja, selvfølgelig. Mit projekt fokuserer på, øh, implementering af machine learning algoritmer til, øh, tekstanalyse. Jeg har arbejdet med naturlig sprogbehandling og, hmm, forskellige former for sentiment analyse.
-
-[Taler 1]: Interessant. Hvilke specifikke algoritmer har du arbejdet med?
-
-[Taler 2]: Jeg har primært brugt neural networks, særligt LSTM og transformer modeller. Øh, jeg har også eksperimenteret med BERT til contextual embeddings.
-  `.trim());
-
+const TranscriptionViewer = ({ transcription: initialTranscription, selectedRoom }: TranscriptionViewerProps) => {
+  const [transcription, setTranscription] = useState(initialTranscription);
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-  const [editedTranscription, setEditedTranscription] = useState(transcription);
+  const [editedTranscription, setEditedTranscription] = useState(initialTranscription);
 
-  const keywords = ["AI", "machine learning", "neural networks", "BERT", "transformer", "sentiment analyse"];
-  const missingKeywords = ["deep learning", "NLP", "algoritmer"];
+  const keywords = selectedRoom?.keywords || [];
+  const missingKeywords = keywords.filter(keyword => 
+    !transcription.toLowerCase().includes(keyword.toLowerCase())
+  );
 
   const highlightText = (text: string) => {
     if (!searchTerm && keywords.length === 0) return text;
@@ -123,9 +124,11 @@ const TranscriptionViewer = () => {
 
         {keywords.length > 0 && (
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">Aktive nøgleord:</p>
+            <p className="text-sm font-medium text-gray-700 mb-2">Fundne nøgleord:</p>
             <div className="flex flex-wrap gap-1">
-              {keywords.map((keyword, idx) => (
+              {keywords.filter(keyword => 
+                transcription.toLowerCase().includes(keyword.toLowerCase())
+              ).map((keyword, idx) => (
                 <Badge key={idx} variant="secondary" className="text-xs bg-accent-100 text-accent-700">
                   {keyword}
                 </Badge>

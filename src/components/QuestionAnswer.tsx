@@ -13,7 +13,11 @@ interface Message {
   timestamp: Date;
 }
 
-const QuestionAnswer = () => {
+interface QuestionAnswerProps {
+  transcription: string;
+}
+
+const QuestionAnswer = ({ transcription }: QuestionAnswerProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -47,12 +51,12 @@ const QuestionAnswer = () => {
     setCurrentQuestion('');
     setIsLoading(true);
 
-    // Simulate AI response
+    // Simulate AI response based on transcription
     setTimeout(() => {
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
-        content: generateMockResponse(userMessage.content),
+        content: generateResponse(userMessage.content, transcription),
         timestamp: new Date()
       };
       
@@ -61,14 +65,16 @@ const QuestionAnswer = () => {
     }, 1500);
   };
 
-  const generateMockResponse = (question: string): string => {
-    // This would be replaced with actual Gemini API call
+  const generateResponse = (question: string, transcription: string): string => {
+    const words = transcription.split(' ').length;
+    const speakers = (transcription.match(/\[Taler \d+\]:/g) || []).length;
+    
     if (question.toLowerCase().includes('vigtigste')) {
       return 'Baseret på transskriptionen var de vigtigste punkter: 1) Præsentation af AI-projekt, 2) Diskussion af machine learning algoritmer, særligt neural networks og BERT, 3) Fokus på tekstanalyse og sentiment analyse.';
     } else if (question.toLowerCase().includes('fagterm')) {
       return 'De følgende fagtermer blev nævnt: neural networks, LSTM, transformer modeller, BERT, contextual embeddings, machine learning, og sentiment analyse. Dette viser en god teknisk forståelse.';
     } else if (question.toLowerCase().includes('taletid')) {
-      return 'Taler 2 (Marie) havde ca. 65% af taletiden med 289 ord, mens Taler 1 (Lars) havde 35% med 156 ord. Dette er typisk for en eksamenssituation hvor eksaminanden taler mest.';
+      return `Baseret på transskriptionen var der ${speakers} talesekvenser. Den samlede transskription indeholder ${words} ord, hvilket svarer til cirka ${Math.round(words * 0.5 / 60)} minutters tale.`;
     }
     return 'Det er et interessant spørgsmål. Baseret på transskriptionen kan jeg se forskellige mønstre og detaljer. Kan du være mere specifik om hvad du leder efter?';
   };
@@ -178,6 +184,13 @@ const QuestionAnswer = () => {
       </CardContent>
     </Card>
   );
+};
+
+const handleKeyPress = (e: React.KeyboardEvent) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendQuestion();
+  }
 };
 
 export default QuestionAnswer;

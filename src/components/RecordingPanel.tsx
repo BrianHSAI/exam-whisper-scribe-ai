@@ -16,7 +16,7 @@ interface Room {
 
 interface RecordingPanelProps {
   selectedRoom?: Room;
-  onRecordingComplete?: () => void;
+  onRecordingComplete?: (audioBlob: Blob) => void;
 }
 
 const RecordingPanel = ({ selectedRoom, onRecordingComplete }: RecordingPanelProps) => {
@@ -45,7 +45,7 @@ const RecordingPanel = ({ selectedRoom, onRecordingComplete }: RecordingPanelPro
         
         // Trigger automatic processing
         if (onRecordingComplete) {
-          onRecordingComplete();
+          onRecordingComplete(audioBlob);
         }
       };
 
@@ -217,6 +217,46 @@ const RecordingPanel = ({ selectedRoom, onRecordingComplete }: RecordingPanelPro
       </CardContent>
     </Card>
   );
+};
+
+const pauseRecording = () => {
+  if (mediaRecorderRef.current && isRecording) {
+    if (isPaused) {
+      mediaRecorderRef.current.resume();
+      intervalRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+      setIsPaused(false);
+      toast.info("Optagelse genoptaget");
+    } else {
+      mediaRecorderRef.current.pause();
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      setIsPaused(true);
+      toast.info("Optagelse sat på pause");
+    }
+  }
+};
+
+const downloadRecording = () => {
+  if (audioBlob) {
+    const url = URL.createObjectURL(audioBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `examtape-recording-${new Date().toISOString()}.wav`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Optagelse downloadet");
+  }
+};
+
+const formatTime = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
 export default RecordingPanel;
